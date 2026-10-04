@@ -51,6 +51,26 @@ function run(cmd, args, opts = {}) {
   if (r.status !== 0) throw new Error(`${cmd} ${args.join(' ')} exited with ${r.status ?? r.error}`)
 }
 
+// The web bundle (../dist) is compiled from the root node_modules, so those must be exactly what package-lock.json says: a stale
+// install would silently ship old (possibly vulnerable) library versions inside the app.
+function assertInstalledMatchesLock() {
+  const lock = JSON.parse(fs.readFileSync(path.join(ROOT, 'package-lock.json'), 'utf8')).packages
+  const bad = []
+  for (const [key, meta] of Object.entries(lock)) {
+    if (!key) continue
+    const pj = path.join(ROOT, ...key.split('/'), 'package.json')
+    const name = key.replace(/node_modules\//g, '')
+    if (!fs.existsSync(pj)) {
+      if (!meta.optional && !meta.devOptional && !meta.os && !meta.cpu) bad.push(`${name} (not installed)`)
+      continue
+    }
+    const got = JSON.parse(fs.readFileSync(pj, 'utf8')).version
+    if (got !== meta.version) bad.push(`${name} ${got} (locked ${meta.version})`)
+  }
+  if (bad.length) throw new Error(`node_modules does not match package-lock.json: ${bad.length} difference(s), e.g. ${bad.slice(0, 4).join('; ')}. Run \`npm ci\` in the repository root and build again.`)
+  log(`node_modules matches package-lock.json (${Object.keys(lock).length - 1} entries checked)`)
+}
+
 // ── 1. which files and packages does the Node side need? ─────────────────────────────────────────────────────────
 const IMPORT = /(?:import\s+(?:[^'"()]*?\s+from\s+)?|import\(\s*|require\(\s*|export\s+[^'"]*?\s+from\s+)['"]([^'"]+)['"]/g
 
@@ -245,7 +265,10 @@ if (argv.has('--smoke-only')) {
 } else if (argv.has('--installer-test')) {
   installerTest()
 } else {
-  if (!argv.has('--skip-frontend')) run('npm', ['run', 'build'], { cwd: ROOT })
+  if (!argv.has('--skip-frontend')) {
+    assertInstalledMatchesLock()
+    run('npm', ['run', 'build'], { cwd: ROOT })
+  }
   stage()
   if (!argv.has('--stage-only')) {
     buildInstaller()
