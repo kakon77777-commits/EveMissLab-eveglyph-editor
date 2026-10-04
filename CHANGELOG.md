@@ -6,6 +6,11 @@ All notable changes to EveGlyph Editor are documented here. Format loosely follo
 ## [0.5.0] — 2026-10-05
 
 ### Added
+- **Windows desktop build (preview)** — `desktop/` holds an Electron wrapper (the same local bridge and built
+  frontend on `127.0.0.1`, plus a random per-launch API token that only the app's own window carries) and the
+  script that builds a per-user NSIS installer and a zip from it, staging only the files and npm packages the
+  Node side really imports. It has its own `package.json`, so the project's `npm ci` never downloads Electron.
+  The installer is not code-signed. See `desktop/README.md` and the new "Desktop app" section of SECURITY.md.
 - **Capability sandbox foundation** — AIMD-C document computation (the live preview and MCP
   `evaluate_aimdc`) now enters through a deny-by-default capability control plane
   (`src/capabilities/`). The default `document-only` profile grants only `document.read.self`,

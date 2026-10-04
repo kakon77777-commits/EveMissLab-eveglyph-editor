@@ -32,7 +32,7 @@ It is the editor half of **EveGlyph-MD**, a semantic-first Markdown format/proto
 
 ## Download
 
-A packaged Windows installer is being prepared and will be attached to [GitHub Releases](https://github.com/kakon77777-commits/EveMissLab-eveglyph-editor/releases) when it is published. Until then, run EveGlyph Editor from source as described below; it needs only [Node.js](https://nodejs.org/) 18+, and `git` for diff review.
+A packaged Windows installer is being prepared and will be attached to [GitHub Releases](https://github.com/kakon77777-commits/EveMissLab-eveglyph-editor/releases) when it is published. Until then, run EveGlyph Editor from source as described below; it needs only [Node.js](https://nodejs.org/) 18+, and `git` for diff review. The recipe for building the installer yourself is in [`desktop/`](desktop/README.md).
 
 ## Quick start
 
@@ -64,7 +64,7 @@ Then open <http://localhost:5173>.
 ## How it works
 
 - **Frontend** — vanilla ES modules + CodeMirror, with all mutable state in a single `S` singleton (`src/`).
-- **Bridge** — a **dev-only** Vite plugin (`vite-agent-bridge.js`) exposing `/api/*` for filesystem I/O, encoding detection, git diff-review, and agent spawning. It runs only under `npm run dev` (`apply: 'serve'`), and every endpoint is gated to local requests.
+- **Bridge** — a **dev-only** Vite plugin (`vite-agent-bridge.js`) exposing `/api/*` for filesystem I/O, encoding detection, git diff-review, and agent spawning. As a Vite plugin it runs only under `npm run dev` (`apply: 'serve'`); the Windows desktop app in [`desktop/`](desktop/README.md) mounts the same bridge on a loopback-only server. Every endpoint is gated to local requests.
 
 ```text
 browser frontend  ⇄  Vite local bridge  ⇄  filesystem · git · CLI agent

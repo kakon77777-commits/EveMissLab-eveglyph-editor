@@ -4,7 +4,7 @@ EveGlyph Editor is a **local-first developer tool**: it runs on your own machine
 
 ## In one line
 
-The bridge is dev-only and localhost-gated. The biggest risk is **by design**: local-agent mode lets a CLI edit your files with auto-approve. You stay in control through a per-workspace confirmation and git-based diff review.
+The bridge is localhost-gated and only ever runs on your own machine (under `npm run dev`, or inside the desktop app). The biggest risk is **by design**: local-agent mode lets a CLI edit your files with auto-approve. You stay in control through a per-workspace confirmation and git-based diff review.
 
 ## Capability sandbox foundation
 
@@ -28,7 +28,7 @@ This foundation is not itself an OS/process sandbox and does not claim to make a
 
 ## The local bridge
 
-- The `/api/*` bridge (`vite-agent-bridge.js`) is a Vite plugin declared **`apply: 'serve'`** — it exists only under `npm run dev`, never in a production build.
+- The `/api/*` bridge (`vite-agent-bridge.js`) is a Vite plugin declared **`apply: 'serve'`** — it exists only under `npm run dev` and is never part of a production web build. The Windows desktop app (see the Desktop app section below) mounts the same code on its own loopback-only server instead.
 - Every `/api` request is gated by `isLocalRequest`: the `Host` must be `localhost` / `127.0.0.1` / `::1`, and if an `Origin` header is present its hostname must also be local — otherwise the request is rejected with **403**. This blocks CSRF and DNS-rebinding from a malicious web page.
 - Vite's dev server binds to localhost by default, so it is not reachable from your LAN. Note that the `isLocalRequest` gate is **header-based** (it inspects `Host` / `Origin`): that defends against CSRF and DNS-rebinding from a web page, but it is *not* a substitute for network isolation. If you start the server with `--host` (binding all interfaces), a device on your LAN could reach the bridge by sending a `localhost` `Host` header. **Do not run the dev server with `--host` on an untrusted network.**
 - File reads/writes confine the target path with `resolveInside` (any path that escapes the workspace root is rejected). Beyond that, **every workspace-scoped operation — file I/O, the git snapshot / diff / accept / reject, and the agent spawn — is pinned to the single folder you opened**: the bridge records that folder when you open it, and a later request whose working directory isn't that folder (or a descendant) is rejected. This keeps a crafted `/api` request from pointing a destructive `git reset --hard` / `clean -fd`, or an auto-approve agent, at an arbitrary directory.
@@ -73,9 +73,19 @@ Same tool set as `mcp-server.js` above, reachable over HTTP instead of stdio —
 - **No CORS handling.** Remote MCP clients (Claude.ai's remote connector, ChatGPT's MCP support, etc.) typically call the URL server-side, not from a user's own browser JS, so a same-origin restriction wouldn't add anything here — if a specific client needs CORS headers, that's a small, separate addition once there's a concrete need.
 - **Settings ⚙ → Enable remote MCP server** lets the bridge spawn/kill `mcp-server-remote.js` for you instead of running it from a terminal yourself — everything above still applies exactly the same (loopback-only bind, mandatory token, no diff-review). Two things specific to this path: (1) the new `/api/mcp/start`/`/api/mcp/stop`/`/api/mcp/status` bridge endpoints are gated by the same `isLocalRequest` check as every other `/api/*` endpoint (CSRF/DNS-rebinding protection), and confined to the currently-opened workspace via the existing `assertWorkspace` check — a malicious page reachable only via the bridge's own CSRF gate still couldn't read the token it would need to actually use the server it started, since the token lives in this page's own `localStorage`/in-memory state, unreadable cross-origin. (2) The bridge kills any running MCP-remote process when the dev server itself stops (`server.httpServer.on('close', ...)`), so it doesn't linger as an orphaned background process across `npm run dev` restarts.
 
+## Desktop app (Windows, Electron)
+
+`desktop/` wraps the same bridge and built frontend in an Electron window (see [desktop/README.md](desktop/README.md)). It does not widen the trust model above, and adds the following:
+
+- The server binds to `127.0.0.1` only. Every `/api` request must carry a random per-launch token (`X-EveGlyph-Desktop`) that only the app's own window adds, so other local web pages and programs — including pages served from a `localhost` origin, which the bridge's header check alone would accept — cannot use the bridge.
+- The window runs with `contextIsolation` and `sandbox` on, no Node integration and no preload script. Other sites open in your default browser. Only the clipboard-write, fullscreen and file-system-access permissions are granted.
+- The optional remote-MCP child process is started from the Electron binary with `ELECTRON_RUN_AS_NODE=1`. That switch exists on the executable itself, so any program that can run the installed app can also use it as a plain Node runtime — the same as any program that can run `node`.
+- The installer is **not code-signed**, so Windows SmartScreen may warn about an unknown publisher. Compare the download's SHA-256 with the value published with the release before you run it.
+- API keys are kept in the app profile's local storage (`%APPDATA%\EveGlyph Editor`), in plaintext, exactly as in the browser build.
+
 ## API keys
 
-- Cloud-provider API keys are stored in the browser's **`localStorage`, in plaintext** (key `eveglyph_cfg`). This is convenient for local dev but is **not** secure storage. Don't use it on a shared or untrusted machine. A future desktop build would move keys to the OS keychain.
+- Cloud-provider API keys are stored in the browser's **`localStorage`, in plaintext** (key `eveglyph_cfg`). This is convenient for local dev but is **not** secure storage. Don't use it on a shared or untrusted machine. The Windows desktop app keeps them in its own profile's local storage (`%APPDATA%\EveGlyph Editor`), also in plaintext; moving keys to the OS keychain is not done yet.
 - Calling Anthropic directly from the browser requires the `anthropic-dangerous-direct-browser-access` header; for stricter setups, route through an OpenAI-compatible proxy instead.
 
 ## Preview sanitization

@@ -1,0 +1,42 @@
+# electron-builder configuration for the Windows desktop app. build.mjs passes --projectDir (the staged app) and
+# --config (this file); the output folder is set on the command line.
+appId: com.evemisslab.eveglyph-editor
+productName: EveGlyph Editor
+copyright: Copyright © 2026 EVEMISS TECHNOLOGY CO., LTD.
+electronVersion: 44.5.1
+
+# Plain files on disk (no asar): the bridge starts the optional remote-MCP server as a child process from these
+# files, the Typst renderer reads fonts from public/fonts/typst, and the LGPL-licensed jschardet stays trivially
+# replaceable by the user.
+asar: false
+npmRebuild: false
+nodeGypRebuild: false
+buildDependenciesFromSource: false
+
+files:
+  - "**/*"
+  - "!**/*.map"
+
+win:
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: zip
+      arch: [x64]
+  artifactName: EveGlyph-Editor-${version}-win-x64.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: EveGlyph Editor
+  uninstallDisplayName: EveGlyph Editor
+  deleteAppDataOnUninstall: false
+  license: LICENSE.txt
+  artifactName: EveGlyph-Editor-Setup-${version}.${ext}
+
+publish: null

@@ -1171,6 +1171,8 @@ export function agentBridge() {
           ...process.env,
           EVEGLYPH_MCP_TOKEN: token,
           EVEGLYPH_MCP_PORT: String(port),
+          // In the packaged desktop app process.execPath is the Electron binary; this makes it run the script as plain Node.
+          ...(process.versions.electron ? { ELECTRON_RUN_AS_NODE: '1' } : {}),
         }
         let child
         try {
