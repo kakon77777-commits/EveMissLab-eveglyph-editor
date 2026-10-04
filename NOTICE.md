@@ -10,7 +10,7 @@ EveGlyph Editor is Copyright (c) 2026 EVEMISS TECHNOLOGY CO., LTD. (一言諾科
 
 Dependencies are installed from the npm registry according to [`package-lock.json`](package-lock.json); they are not copied into this repository, and each stays under the license declared in its own package. Declared licenses of the locked packages:
 
-- Runtime: MIT ×150, Apache-2.0 ×21, ISC ×8, BlueOak-1.0.0 ×7, BSD-2-Clause ×6, BSD-3-Clause ×3, (MPL-2.0 OR Apache-2.0) ×1, BSD ×1, Python-2.0 ×1, LGPL-2.1+ ×1, (MIT OR GPL-3.0-or-later) ×1, (MIT AND Zlib) ×1
+- Runtime: MIT ×137, Apache-2.0 ×21, ISC ×8, BlueOak-1.0.0 ×7, BSD-2-Clause ×6, BSD-3-Clause ×3, (MPL-2.0 OR Apache-2.0) ×1, BSD ×1, Python-2.0 ×1, LGPL-2.1+ ×1, (MIT OR GPL-3.0-or-later) ×1, (MIT AND Zlib) ×1
 - Development only: MIT ×61, ISC ×1, BSD-3-Clause ×1
 
 Packages that need a word of explanation:
