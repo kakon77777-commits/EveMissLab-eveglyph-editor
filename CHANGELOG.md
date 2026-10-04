@@ -1,0 +1,301 @@
+# Changelog
+
+All notable changes to EveGlyph Editor are documented here. Format loosely follows
+[Keep a Changelog](https://keepachangelog.com/) — newest first.
+
+## [0.5.0] — 2026-10-05
+
+### Added
+- **Capability sandbox foundation** — AIMD-C document computation (the live preview and MCP
+  `evaluate_aimdc`) now enters through a deny-by-default capability control plane
+  (`src/capabilities/`). The default `document-only` profile grants only `document.read.self`,
+  `document.compute` and `ephemeral.output`; filesystem, network, process, host-environment and
+  credential authority are absent unless a caller supplies an explicit, resource-scoped grant, and every
+  allow/deny decision carries actor-aware audit evidence. `src/capabilities/mcp-map.js` records the
+  authority each MCP tool would need — groundwork only: there is no user-facing grant flow yet and the
+  existing MCP tools keep their transport-level behavior. It is not an OS sandbox. See SECURITY.md.
+- **MCP publication runtime** — six new MCP tools (`get_publication_capabilities`, `inspect_document`,
+  `validate_document`, `render_document`, `get_render_artifact`, `get_render_report`) let an MCP client
+  inspect, validate and render canonical EveGlyph/Markdown source to a temporary PDF without touching the
+  source or the workspace. Profiles `evemiss-whitepaper-v1` (default) and `evemiss-academic-v1`; artifacts
+  are process-scoped, expire after 30 minutes, are capped at 64 MiB each and 256 MiB in total, and come with
+  source and artifact SHA-256 hashes in a render report. The conversion is shared with the browser PDF
+  export. See `docs/MCP-PUBLICATION-RUNTIME.md`.
+- **Heading scale, Paper/Midnight themes, and Custom CSS** — three gaps found by
+  reading Zettlr's real source (`github.com/Zettlr/Zettlr`) as a UI benchmark,
+  closed one-for-one: a full h1-h6 preview heading scale (was h1-h3 only); two
+  new selectable themes, Paper (warm sepia light) and Midnight (true-black
+  max-contrast dark), joining Studio as `data-theme` attribute themes so
+  Dark/Light's own CSS/toggle logic stays untouched; and a Custom CSS setting
+  (`src/customcss.js`, workspace-relative path, loaded after the app's own
+  styles, reloaded automatically on workspace switch and Settings save).
+- **UI polish pass: topbar consolidation, Studio theme, wider resize range** —
+  the status bar (cursor position, modified indicator, encoding) moved from an
+  easy-to-miss strip at the very bottom of the viewport to directly under the
+  topbar; quick Theme and Language switchers were added to the topbar itself
+  (left of Open Folder), staying in sync with the same controls in Settings;
+  a third, more "commercial-grade" theme, **Studio**, joined Dark/Light
+  (both left exactly as they were); and the sidebar/right-panel resize range
+  was widened (`sidebarMax` 480→640, `rightPanelMax` 640→900). A follow-up fix
+  corrected the encoding/frontmatter popup menus, which positioned off-screen
+  after the status bar moved (they computed position relative to the status
+  bar's old location).
+- **Dynamic Logic browser renderer: event-driven motion + autoplay** — the
+  Dynamic Logic history panel gains `▶ Play`/`⏸ Pause` autoplay (one real
+  evidence step per tick, no decorative animation loop — motion fires only on
+  an actual state/value change), a timeline progress bar, and evidence-card
+  arrival/rewind transitions. Judgment cards pulse and show a transition
+  summary plus support/counterpressure/completeness deltas. AIMD-C formula
+  and inline `{{ }}` views that read a changed Dynamic Logic external ref
+  animate once and show a delta badge — presentation-only, `aimdc/graph.js`
+  is untouched. Reaching the terminal replay step now normalizes to true
+  Live, so later-appended evidence is followed automatically instead of
+  freezing at the old maximum. Playback stops itself (not silently, not
+  crashing) if its panel leaves the DOM (tab/file switch) or if the source is
+  edited mid-session and the evidence count changes. Respects
+  `prefers-reduced-motion`. See `docs/dynamic-logic-browser-renderer.md` and
+  `npm run verify:dynamic-rendering`.
+- **Dynamic Logic MVP: replayable judgments on top of AIMD-C** — new
+  `aimd-claim`/`aimd-evidence`/`aimd-judgment`/`aimd-history` blocks add a
+  claim/evidence/judgment runtime layered above AIMD-C, not a second math
+  engine. A deterministic reducer tracks each judgment through
+  open → generating → provisionally true/false, reopening a closed judgment
+  when later evidence drifts back across its own closure threshold. UI-local
+  replay (`←`/`→`/`Live`) steps through a claim's evidence history without
+  ever rewriting Markdown or touching disk, namespaced per document so two
+  files can reuse the same claim id independently. A narrow `externalRefs`
+  bridge lets existing `{{ }}`/`aimd-view` syntax read a judgment's values
+  (`@weather-judge.support`) with local AIMD-C ids always taking precedence.
+  See `examples/dynamic-logic-demo.md` and `npm run verify:dynamic-logic`.
+- **Opt-in advanced World Studio surface + guided semantic write-back** —
+  Settings now controls visibility of Runtime, World, Studio, and editable
+  World IR Preview; it is off by default and safely falls back to plain YAML
+  Preview without mutating the buffer. State Machine semantic records now have
+  guided forms for variables/defaults/bounded random, events/payload,
+  instructions/examples, and responses. Unsupported extension fields survive
+  through the Advanced JSON fallback. Invalid JSON, over-limit examples,
+  invalid random choices/ranges, and invalid full-record edits fail closed.
+- **Complete visual World Studio write-back slice** — State Machine Preview now
+  includes initial-state, transition, and extensible semantic-record editors;
+  Runtime mapping review now has visual entity, state-machine, EventIR,
+  requirements, priority, event-match, guard-policy, and reward controls. A
+  mapping can be loaded from raw JSON and synchronized back before validation.
+  These controls update the editor buffer only; disk Save remains explicit and
+  Runtime State remains read-only from Studio. Transition fields now commit on
+  blur as well as change and reject invalid or over-limit Runtime contract data;
+  unknown mapping values are preserved instead of being silently defaulted.
+- **Chart & function-plot blocks (Visual IR)** — `::: chart {type="bar|line|pie"}
+  ... :::` for self-contained data, `::: plot {domain="[a, b]"} fn-body :::` for a
+  function's curve, both rendered as hand-rolled SVG. `aimd-view
+  {renderer="chart"}` can also visualize a computed AIMD-C value (a table's rows).
+  See `examples/visual-ir-demo.md`. Diagram IR and PDF export for these are a
+  separate follow-up, not built yet.
+- **MCP toggle in Settings** — Settings ⚙ → **Enable remote MCP server** starts/stops
+  `mcp-server-remote.js` for you (bridge-managed, no terminal needed), with a token
+  generator/copy button and a live running/stopped status. Also shows a ready-to-copy
+  **Local MCP (stdio)** command using your current workspace path. Off by default; the
+  checkbox always reflects whether the process is actually running, never a stored
+  preference.
+- **Remote MCP server** (`mcp-server-remote.js`) — the same MCP tool set as
+  `mcp-server.js`, over HTTP + a required bearer token instead of stdio, so a client that
+  isn't on this machine can reach it too (tunnel it with something like `cloudflared` to
+  get a public URL). Binds to `127.0.0.1` only — it's never directly internet-facing by
+  itself. Run with `npm run mcp:remote -- /path/to/workspace` (needs `EVEGLYPH_MCP_TOKEN`
+  set). See SECURITY.md — this has a meaningfully different trust model than the local
+  version (no second gate beyond the token once tunneled).
+- **MCP server** (`mcp-server.js`) — a standalone, local stdio [MCP](https://modelcontextprotocol.io)
+  server, so any MCP-capable client (Claude Desktop, Claude Code, etc.) can work with an
+  EveGlyph workspace directly, no browser tab required. Five tools: `list_files`,
+  `read_file`, `write_file`, `evaluate_aimdc` (same engine the live preview/PDF export
+  use), and `validate_world_ir` (same validator the World IR views use). Run with
+  `npm run mcp -- /path/to/workspace`.
+- **PDF theme & layout** — PDF export now supports named themes
+  (`typst_theme:` in frontmatter — `evemiss-serif-light`, the default, or
+  `evemiss-classic-light`) and layout profiles (`typst_layout:` —
+  `technical-whitepaper`, the default, `academic-paper`, or
+  `long-form-book`), controlling font, scale, colors, page size/margins, and
+  whether equations get numbered. Leave both unset and export is unchanged
+  from before. Theorem/Lemma/Definition callouts in exported PDFs are now
+  sequentially numbered (Theorem 1, Theorem 2, ...).
+- **AIMD-C blocks now export to PDF as real typeset output** — values,
+  functions, compute results, assertions, tables, and formula/number/table
+  views all render properly in PDF export (previously a plain placeholder
+  box). `{{ id.field }}` inline references resolve in PDF export too, same
+  as in the live preview.
+- **AIMD-C computable document blocks** — replaces the earlier `::: aimd :::`
+  `Logic_Node`/`Coupling Node` syntax with typed values, pure functions, a
+  real dependency graph, assertions, and computed results that re-evaluate
+  live as you type. Reference any block's result from anywhere in the
+  document (`@id.field`), or inline in prose (`{{ id.field }}`). Wrong types
+  and circular references are caught and reported honestly, not silently
+  ignored. See `examples/aimd-demo.md` for a full worked walkthrough.
+- **Automatic MathJax fallback** — a formula KaTeX can't render gets one more
+  try through MathJax before being reported as failed. Not everything KaTeX
+  can't do, MathJax can — but real gaps like the `multline` environment or
+  chemistry notation (`\ce{...}`) now render correctly instead of showing a
+  diagnostic. Loads lazily (only when there's an actual failure to retry),
+  and a rescued formula gets a subtle marker so it's clear it took a
+  fallback path.
+- **Math auto-normalization (Safe Rewrite)** — some formulas that look like a
+  KaTeX gap are really just a syntax alias KaTeX doesn't recognize by name
+  (e.g. `split`, which means the same as `aligned`). Those now get quietly
+  rewritten before rendering instead of failing — a small note appears above
+  the preview when this happens, logged to the Monitor tab.
+- **Math diagnostics panel** — a formula that fails to render (or partially
+  degrades — an unsupported command inside an otherwise-valid formula) used to
+  disappear silently. Now it shows up as a diagnostics panel above the
+  preview, and is logged to the Monitor tab. See `examples/math-corpus.md`
+  for a demo of passing, auto-normalized, and intentionally-failing formulas.
+- **Resizable panes + full-width panel tabs** — the sidebar and right panel
+  can now be drag-resized (a splitter between each pane and its neighbor),
+  and the panel-tab row (Preview/Runtime/World/Studio/AI/Search/Monitor/
+  Docs/Settings) moved to its own full-width row under the topbar instead of
+  being squeezed into the right panel, where 9 tabs no longer fit legibly.
+  Widths persist across reloads.
+- **Language setting + real translation (i18n Phase 1–3)** — a new
+  **Language** selector in Settings ⚙ (English / 繁體中文 so far, easy to
+  extend). No framework, plain per-locale dictionaries (`src/i18n/`), English
+  as fallback. Coverage now spans both `index.html`'s static UI chrome
+  (topbar, sidebar, every panel tab, Settings, status bar) **and**
+  dynamically-generated content across the rest of the app — file tree/tabs,
+  context menus, the agent diff-review UI, AI preset labels, search/AI-search
+  results, Studio/Runtime/Overview/Monitor panels, and `alert()` messages
+  (~202 translation keys, zero gaps as of Phase 3). AI prompt text sent to
+  providers, Monitor diagnostic payload content, and document/Markdown
+  content itself intentionally stay untranslated regardless of the Language
+  setting.
+- **Controlled Studio randomness** — variable drafts can now declare bounded
+  boolean, integer, number, or choice random specs. Limits and invalid ranges
+  are diagnosed locally; generated random data remains reviewable draft data.
+- **PDF export (Typst)** — a new **PDF** button in the topbar compiles the active
+  Markdown document into a real typeset PDF (proper math layout, real page
+  breaks — not just the browser's Save-as-PDF, which **Print** still does).
+  Runs entirely client-side via a WebAssembly build of the
+  [Typst](https://typst.app) compiler, bundled as an ordinary dependency and
+  served from this app — nothing is uploaded anywhere. Handles headings,
+  bold/italic/strikethrough, code, links, nested/ordered lists, blockquotes,
+  tables, math (via `tex2typst`), callouts (colored boxes matching the preview's
+  colors), and AIMD blocks (a static print rendering — no compute buttons or
+  folded Coupling Nodes, just the last-known state as written). Traditional
+  Chinese text renders correctly (Noto Serif TC). A document-level style pass
+  sets a real page/font/heading/code/link/table look rather than raw Typst
+  defaults. First export in a session downloads ~51MB (compiler + fonts),
+  cached after.
+- **RigorLoop audit preset** — a new "🧪 RigorLoop audit (AMEP)" quick action in
+  the AI panel. Unlike the other presets, this doesn't call your configured AI
+  provider — it calls [AMEP](https://evemisstechnology.com/amep/), a separate
+  open method-pack project, directly in your browser (no server round-trip, no
+  API key needed). RigorLoop scans your selection/document for compressed proof
+  language, unclear equivalence claims, and missing citations, and returns
+  concrete findings with recommendations. It's a heuristic keyword/marker
+  scanner, not a theorem prover or an LLM — the result panel says so plainly.
+  First use in a session downloads ~14 MB (cached after).
+- **World IR mode (CompilableWorld)** — open a `.yaml`/`.yml` file starting with
+  `kind: state_machine` / `kind: entity` / `kind: entity_list` and the preview
+  pane renders it visually instead of Markdown: state machines as a clickable
+  SVG diagram (add/delete states and transitions right from the diagram),
+  entities as an editable field form, entity lists as a table. Every view runs
+  a validator (missing/undefined states, conflicting transitions, unreachable
+  states, missing/duplicate ids) and shows the result inline. A new **🌐 World**
+  tab scans the whole open workspace and inventories every recognized document
+  at once, click-to-jump to any of them. The file itself always stays plain
+  YAML text — this is a different way of viewing/editing it, not a separate
+  save format. See `examples/village-inn/` for real examples. (Originally
+  built as a separate fork, `compilableworld-studio` — folded back in here
+  once it became clear nothing about it actually needed a separate codebase.)
+- **Studio AI draft panel** — a new **Studio** tab generates bounded
+  `kind: state_machine` YAML drafts with variables, events, language instructions,
+  responses, and transitions. The response is parsed and validated locally with
+  hard size limits; invalid drafts cannot be applied, and applying a valid draft
+  only changes the editor until the user explicitly saves it. No Runtime State is
+  mutated and unknown semantics remain reviewable.
+- **AIMD computable-math blocks** — a new `::: aimd … :::` block type for
+  Markdown documents. Write a spreadsheet-style formula (`SUM`, `AVERAGE`, `IF`,
+  `AND`/`OR`/`NOT`, comparisons, trig/log/sqrt, …) and click **▶** to actually
+  compute it — no `eval`, no shell-out, runs through a small sandboxed evaluator.
+  Also supports lightweight "status light" nodes and collapsible **Coupling
+  Node** blocks that only materialize their content when you open them (and free
+  it again when you close them).
+- **Changelog & User Guide tabs** — this changelog and a full walkthrough of the
+  app are now readable inside EveGlyph Editor itself (the 📖 tab, or the link
+  next to the version number).
+- **AI semantic search** — a second mode in the 🔍 tab (**✨ AI**, next to the
+  existing **🔍 Exact**), for asking a plain-language question instead of matching
+  exact text — "where do we handle authentication?" instead of guessing the exact
+  wording. Uses whichever cloud AI provider is set in Settings; ranks and quotes
+  the most relevant passages with a one-line reason, click a result to jump right
+  to it. Kept as a clearly separate mode from exact search, not blended in — exact
+  search stays a plain, predictable, non-AI tool.
+
+### Fixed
+- **World Studio** wrongly blocked **Apply** for real, valid state-machine files that
+  don't declare an explicit `states:` list (states inferred from transitions — always
+  valid, the same rule the actual Preview pane has used all along). Now a warning, not
+  a hard error.
+- `examples/typst-export-demo.md`'s `split`-environment math formula has
+  silently failed to render in the preview (not the PDF export) since it was
+  added — KaTeX has never supported `\begin{split}`. Kept as a deliberate
+  diagnostics-panel example now, with a working `aligned` companion added.
+- A `::: note` / `::: warning` callout whose body was a single paragraph used to
+  render a stray, visible `</div>` code block underneath it. Fixed.
+
+## [0.4.0] — 2026-06-27
+
+### Added
+- **Diff-review UX** — an agent's changes now show as per-file cards with
+  +/− line counts (shared by the agent panel and workspace-wide "Replace all"),
+  collapsible, fully escaped.
+- **Real permission tiers** — Cautious / Standard / Trusted now map to actual
+  CLI enforcement (Claude Code tool allow-lists, Codex sandbox levels, Gemini
+  approval modes), not just wording in the prompt.
+- **Live agent activity panel** — see the agent's output stream while it works,
+  replaced by the diff once it's done.
+- **Onboarding** — a three-step empty state for a fresh clone, plus a bundled
+  `examples/` workspace so there's something to open immediately.
+
+### Fixed
+- CJK text in agent output no longer shows as mojibake (the decoder now
+  handles UTF-8 sequences split across stream chunks).
+- A failed diff read now shows a warning instead of silently claiming
+  "no changes."
+- Whole-word search now correctly groups multi-word patterns.
+
+## [0.3.0] — 2026-06-18
+
+### Added
+- **`.eveglyph/` workspace memory** — `rules.md`, `glossary.md`, and
+  `memory/pitfalls.md` / `memory/recent.md` get woven into every local-agent
+  run automatically, editable right in the file tree.
+- **Agent modes** — Suggest (advice only) / Patch (edit + diff review,
+  default) / Direct (apply immediately, one-click revert).
+- **8 built-in AI presets** — clean up AI residue, academic expand,
+  preserve-voice rewrite, fix KaTeX, normalize headings, extract a whitepaper
+  draft, generate a changelog, audit a workspace.
+- **Search & replace** — exact string/regex, current-file or workspace-wide;
+  workspace replace snapshots to git first so it's always revertible.
+- **EveGlyph-MD frontmatter** — a lightweight `type` / `status` / `tags`
+  classification layer with a status-bar chip and preview badges.
+- **DOCX import** — drag a `.docx` in, it converts to Markdown and gets a
+  cleanup pass.
+- **Print / Save-as-PDF** for the rendered preview.
+- **Monitor tab** — a diagnostic stream of what the app and agent are doing,
+  for when something needs debugging.
+
+## [0.2.0] — open-source cleanup
+
+### Added
+- DOMPurify sanitization on all rendered Markdown (XSS hardening).
+- Origin/CSRF gating on the local dev bridge — every `/api/*` request must
+  look like it came from `localhost`.
+- Per-file encoding detection and menu (Big5 / GBK / Shift-JIS / UTF-8 …),
+  with a Settings-level fallback default.
+- PatchMD git diff-review (accept/reject an agent's changes as a commit or a
+  revert).
+- In-file find/replace.
+
+## [0.1.0] — prototype
+
+### Added
+- The first working editor: CodeMirror 6 + `marked` + KaTeX, a file tree and
+  tabs, a Settings panel, and the local-agent bridge (Claude Code / Codex /
+  Gemini detection and invocation).
