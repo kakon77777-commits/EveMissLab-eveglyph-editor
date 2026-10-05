@@ -32,7 +32,9 @@ It is the editor half of **EveGlyph-MD**, a semantic-first Markdown format/proto
 
 ## Download
 
-A packaged Windows installer is being prepared and will be attached to [GitHub Releases](https://github.com/kakon77777-commits/EveMissLab-eveglyph-editor/releases) when it is published. Until then, run EveGlyph Editor from source as described below; it needs only [Node.js](https://nodejs.org/) 18+, and `git` for diff review. The recipe for building the installer yourself is in [`desktop/`](desktop/README.md).
+**Windows 10/11 (x64):** a per-user installer (no administrator rights needed) and a portable zip are attached to the [v0.5.0 release](https://github.com/kakon77777-commits/EveMissLab-eveglyph-editor/releases/tag/v0.5.0), together with `SHA256SUMS.txt`. They are **not code-signed**, so Windows SmartScreen may warn about an unknown publisher: compare the SHA-256 before you run them. `git` must be installed for diff review. The recipe for building the installer yourself is in [`desktop/`](desktop/README.md).
+
+**Any platform:** run EveGlyph Editor from source as described below; it needs only [Node.js](https://nodejs.org/) 18+, and `git` for diff review.
 
 ## Quick start
 
