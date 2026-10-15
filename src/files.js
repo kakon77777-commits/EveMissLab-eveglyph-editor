@@ -1,4 +1,4 @@
-import { S, CFG_KEY, EVEGLYPH_DIR, EVEGLYPH_FILES } from './state.js'
+import { S, persistConfig, EVEGLYPH_DIR, EVEGLYPH_FILES } from './state.js'
 import { CONFIG } from './config.js'
 import { stampDefaults } from './frontmatter.js'
 import { editorSet, editorGet, editorSetSilent } from './editor.js'
@@ -37,7 +37,7 @@ export async function openFolder() {
     if (!chosen) { await monitor('openFolder:cancel', { mode: 'folder-browser', prior: start }); return }
 
     S.cfg.workspace = chosen
-    try { localStorage.setItem(CFG_KEY, JSON.stringify(S.cfg)) } catch (_) {}
+    try { persistConfig() } catch (_) {}
     const ok = await loadWorkspacePath(chosen)
 
     if (!ok) {
@@ -93,7 +93,7 @@ export async function openFolder() {
     }
     bridgeWorkspace = typed.trim()
     S.cfg.workspace = bridgeWorkspace
-    try { localStorage.setItem(CFG_KEY, JSON.stringify(S.cfg)) } catch (_) {}
+    try { persistConfig() } catch (_) {}
   }
 
   if (bridgeWorkspace) {

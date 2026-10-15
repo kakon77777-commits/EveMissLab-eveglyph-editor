@@ -1,4 +1,4 @@
-import { S, CFG_KEY } from './state.js'
+import { S, persistConfig } from './state.js'
 import { fetchFunctionCatalog, previewRuntimeFunction } from './runtimepreview.js'
 import { t } from './i18n/index.js'
 
@@ -9,7 +9,7 @@ let records = []
 
 function saveRuntimeUrl(value) {
   S.cfg.compilableWorldRuntimeUrl = value.trim()
-  try { localStorage.setItem(CFG_KEY, JSON.stringify(S.cfg)) } catch (_) {}
+  try { persistConfig() } catch (_) {}
 }
 
 function setStatus(text, kind = '') {

@@ -19,7 +19,7 @@
 import './styles.css'
 import 'katex/dist/katex.min.css'
 
-import { S, EVEGLYPH_DIR, CFG_KEY }  from './state.js'
+import { S, EVEGLYPH_DIR, persistConfig }  from './state.js'
 import { openFolder, saveFile, newFile, openFile, addEveGlyphFiles } from './files.js'
 import { aiSend, aiPreset, renderPresets } from './ai.js'
 import { stopAgent, acceptReview, rejectReview } from './agent.js'
@@ -77,7 +77,7 @@ function setTheme(theme) {
   S.cfg.theme = theme
   applyTheme(theme)
   if (S.editor) editorInit(editorGet())   // re-create so CodeMirror picks up the new theme
-  try { localStorage.setItem(CFG_KEY, JSON.stringify(S.cfg)) } catch (_) {}
+  try { persistConfig() } catch (_) {}
   monitor('settings:theme', { theme })
   for (const id of ['s-theme', 'qs-theme']) {
     const el = document.getElementById(id)
@@ -89,7 +89,7 @@ function setTheme(theme) {
 function setLanguage(lang) {
   S.cfg.language = lang
   applyLanguage(lang)
-  try { localStorage.setItem(CFG_KEY, JSON.stringify(S.cfg)) } catch (_) {}
+  try { persistConfig() } catch (_) {}
   monitor('settings:language', { language: lang })
   for (const id of ['s-language', 'qs-language']) {
     const el = document.getElementById(id)
@@ -184,7 +184,7 @@ function bindAll() {
   document.getElementById('btn-ai-send').onclick = () => { monitor('click', { target: 'ai-send' }); aiSend() }
   document.getElementById('ai-mode').onchange = (e) => {
     S.cfg.agentMode = e.target.value
-    try { localStorage.setItem(CFG_KEY, JSON.stringify(S.cfg)) } catch (_) {}
+    try { persistConfig() } catch (_) {}
     monitor('settings:agentmode', { mode: e.target.value })
   }
   document.getElementById('ai-input').onkeydown  = e => { if (e.ctrlKey && e.key==='Enter') { monitor('hotkey', { target: 'ai-send' }); aiSend() } }
@@ -264,44 +264,44 @@ function bindAll() {
     if (!Number.isFinite(v) || v < 8 || v > 40) { e.target.value = S.cfg.editorFontSize; return }
     S.cfg.editorFontSize = v
     if (S.editor) editorInit(editorGet())   // re-create so CodeMirror picks up the new size
-    try { localStorage.setItem(CFG_KEY, JSON.stringify(S.cfg)) } catch (_) {}
+    try { persistConfig() } catch (_) {}
     monitor('settings:font-size', { size: v })
   }
   document.getElementById('s-font-family').onchange = (e) => {
     S.cfg.editorFontFamily = e.target.value.trim() || undefined
     if (S.editor) editorInit(editorGet())
-    try { localStorage.setItem(CFG_KEY, JSON.stringify(S.cfg)) } catch (_) {}
+    try { persistConfig() } catch (_) {}
     monitor('settings:font-family', {})
   }
   document.getElementById('s-world-studio-enabled').onchange = (e) => {
     if (!S.cfg.worldStudio) S.cfg.worldStudio = {}
     S.cfg.worldStudio.enabled = e.target.checked
-    try { localStorage.setItem(CFG_KEY, JSON.stringify(S.cfg)) } catch (_) {}
+    try { persistConfig() } catch (_) {}
     applyWorldStudioVisibility()
     previewUpdate()
     monitor('settings:world-studio', { enabled: e.target.checked })
   }
   document.getElementById('s-agent-permission').onchange = (e) => {
     S.cfg.agentPermission = e.target.value
-    try { localStorage.setItem(CFG_KEY, JSON.stringify(S.cfg)) } catch (_) {}
+    try { persistConfig() } catch (_) {}
     monitor('settings:agent-permission', { perm: e.target.value })
   }
   document.getElementById('s-agent-timeout').onchange = (e) => {
     const sec = parseInt(e.target.value, 10)
     if (!Number.isFinite(sec) || sec < 10 || sec > 1800) { e.target.value = Math.round((S.cfg.agentTimeoutMs ?? 180000) / 1000); return }
     S.cfg.agentTimeoutMs = sec * 1000
-    try { localStorage.setItem(CFG_KEY, JSON.stringify(S.cfg)) } catch (_) {}
+    try { persistConfig() } catch (_) {}
     monitor('settings:agent-timeout', { sec })
   }
   document.getElementById('s-agent-quiet').onchange = (e) => {
     S.cfg.agentQuiet = !e.target.checked   // the checkbox is "Show raw output" → quiet is the inverse
-    try { localStorage.setItem(CFG_KEY, JSON.stringify(S.cfg)) } catch (_) {}
+    try { persistConfig() } catch (_) {}
     monitor('settings:agent-quiet', { quiet: S.cfg.agentQuiet })
   }
   document.getElementById('s-memory-enabled').onchange = (e) => {
     if (!S.cfg.memory) S.cfg.memory = {}
     S.cfg.memory.enabled = e.target.checked
-    try { localStorage.setItem(CFG_KEY, JSON.stringify(S.cfg)) } catch (_) {}
+    try { persistConfig() } catch (_) {}
     monitor('settings:memory', { enabled: e.target.checked })
   }
   ;['rules', 'glossary', 'pitfalls', 'recent'].forEach(k => {
@@ -309,7 +309,7 @@ function bindAll() {
     if (el) el.onchange = (e) => {
       if (!S.cfg.memory) S.cfg.memory = {}
       S.cfg.memory[k] = e.target.checked
-      try { localStorage.setItem(CFG_KEY, JSON.stringify(S.cfg)) } catch (_) {}
+      try { persistConfig() } catch (_) {}
       monitor('settings:memory-layer', { layer: k, on: e.target.checked })
     }
   })
@@ -317,7 +317,7 @@ function bindAll() {
   const eveglyphPersist = (k, v) => {
     if (!S.cfg.eveglyphMd) S.cfg.eveglyphMd = {}
     S.cfg.eveglyphMd[k] = v
-    try { localStorage.setItem(CFG_KEY, JSON.stringify(S.cfg)) } catch (_) {}
+    try { persistConfig() } catch (_) {}
     monitor('settings:eveglyph', { [k]: v })
     statusUpdate()   // chip visibility / contents may change
   }

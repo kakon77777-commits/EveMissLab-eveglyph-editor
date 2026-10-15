@@ -153,7 +153,7 @@ function stage() {
     fs.cpSync(path.join(ROOT, dir), path.join(STAGE, dir), { recursive: true })
   }
   fs.rmSync(path.join(STAGE, 'dist', 'fonts', 'typst'), { recursive: true, force: true })   // served from public/fonts/typst instead (host.mjs)
-  for (const f of ['LICENSE', 'NOTICE.md', 'README.md', 'CHANGELOG.md', 'SECURITY.md', 'USER-GUIDE.md']) copyFile(f)
+  for (const f of ['LICENSE', 'NOTICE.md', 'README.md', 'CHANGELOG.md', 'SECURITY.md', 'PRIVACY.md', 'USER-GUIDE.md']) copyFile(f)
   fs.mkdirSync(path.join(STAGE, 'build'), { recursive: true })
   fs.copyFileSync(path.join(HERE, 'icon.ico'), path.join(STAGE, 'build', 'icon.ico'))
   fs.copyFileSync(path.join(HERE, 'icon.png'), path.join(STAGE, 'build', 'icon.png'))

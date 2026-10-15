@@ -8,7 +8,7 @@ EveGlyph Editor is a Markdown editor built around one idea — the **workspace �
 
 It is the editor half of **EveGlyph-MD**, a semantic-first Markdown format/protocol.
 
-**Website:** [eveglypheditor.com](https://eveglypheditor.com) · **Status:** v0.5.0 preview · **License:** [MIT](LICENSE) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md) · [Third-party notices](NOTICE.md)
+**Website:** [eveglypheditor.com](https://eveglypheditor.com) · **Status:** v0.5.0 preview · **License:** [MIT](LICENSE) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md) · [Privacy](PRIVACY.md) · [Third-party notices](NOTICE.md)
 
 > ⚠️ **Local-agent mode runs a CLI with auto-approve.** When you enable it, the selected agent can read, create, edit, and **delete** files in the workspace folder you point it at — without per-file confirmation; you review the changes afterward as a git diff (Accept / Reject). Point it only at a folder you trust, and read **[SECURITY.md](SECURITY.md)** first. (The Anthropic / OpenAI cloud providers never touch your filesystem.)
 
@@ -83,6 +83,12 @@ browser frontend  ⇄  Vite local bridge  ⇄  filesystem · git · CLI agent
 - `evaluate_aimdc` — parse and evaluate a document's AIMD-C blocks through the `document-only` capability profile; the result includes sandbox/audit evidence
 - `validate_world_ir` — validate a World IR YAML document (state machine / entity / entity list)
 - `get_publication_capabilities`, `inspect_document`, `validate_document`, `render_document`, `get_render_artifact`, `get_render_report` — the publication runtime: inspect and validate canonical EveGlyph/Markdown source and render it to a temporary PDF without touching the source or the workspace (see [docs/MCP-PUBLICATION-RUNTIME.md](docs/MCP-PUBLICATION-RUNTIME.md))
+
+All eleven tools declare strict input schemas and all four MCP safety hints.
+`write_file` is marked as destructive because it can overwrite existing files.
+`render_document` is also marked as state-changing and non-idempotent: it creates
+new temporary artifacts and can evict older ones, while preserving workspace
+files. These hints help clients display effects; they do not enforce permissions.
 
 The capability control plane also defines transport-neutral mappings for these base tools and the publication tools. The mapping is groundwork for later identity-aware MCP authorization; **this capability layer does not silently put existing workspace MCP tools behind a new grant-acquisition flow**, and the remote HTTP transport still uses its existing bearer-token compatibility mode.
 

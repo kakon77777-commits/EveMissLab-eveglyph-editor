@@ -36,15 +36,6 @@ function sourceSha256(source) {
   return createHash('sha256').update(Buffer.from(source, 'utf8')).digest('hex')
 }
 
-function toolAnnotations({ idempotent = true } = {}) {
-  return {
-    readOnlyHint: true,
-    destructiveHint: false,
-    idempotentHint: idempotent,
-    openWorldHint: false,
-  }
-}
-
 function artifactSummary(metadata) {
   return {
     artifact_id: metadata.id,
@@ -69,7 +60,8 @@ export function registerPublicationMcp(server, { workspaceRoot } = {}) {
   server.registerTool('get_publication_capabilities', {
     title: 'Get EveGlyph publication capabilities',
     description: 'Describe the headless EveGlyph Publication Runtime, supported profiles and temporary artifact limits.',
-    annotations: toolAnnotations(),
+    inputSchema: z.object({}).strict(),
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   }, async () => jsonResult({
     runtime: 'eveglyph-publication-mvp',
     version: '0.1.0',
@@ -88,8 +80,8 @@ export function registerPublicationMcp(server, { workspaceRoot } = {}) {
   server.registerTool('inspect_document', {
     title: 'Inspect a publication document',
     description: 'Inspect canonical UTF-8 EveGlyph/Markdown source for headings, math, tables, images, code, metadata and EveGlyph block counts. Does not modify source.',
-    inputSchema: { source: z.string() },
-    annotations: toolAnnotations(),
+    inputSchema: z.object({ source: z.string() }).strict(),
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   }, async ({ source }) => {
     try { return jsonResult(inspectDocument(source)) }
     catch (error) { return errorResult(error) }
@@ -98,11 +90,11 @@ export function registerPublicationMcp(server, { workspaceRoot } = {}) {
   server.registerTool('validate_document', {
     title: 'Validate a publication document',
     description: 'Run non-destructive publication preflight validation before PDF compilation.',
-    inputSchema: {
+    inputSchema: z.object({
       source: z.string(),
       profile: z.string().optional(),
-    },
-    annotations: toolAnnotations(),
+    }).strict(),
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   }, async ({ source, profile }) => {
     try {
       return jsonResult(validateDocument(source, {
@@ -116,7 +108,7 @@ export function registerPublicationMcp(server, { workspaceRoot } = {}) {
   server.registerTool('render_document', {
     title: 'Render a publication document to PDF',
     description: 'Render canonical UTF-8 EveGlyph/Markdown source to a temporary PDF artifact without modifying the workspace or source. Relative images/assets resolve inside the selected MCP workspace.',
-    inputSchema: {
+    inputSchema: z.object({
       source: z.string(),
       source_format: z.enum(['eveglyph-md', 'markdown']).default('eveglyph-md'),
       profile: z.string().default('evemiss-whitepaper-v1'),
@@ -124,8 +116,10 @@ export function registerPublicationMcp(server, { workspaceRoot } = {}) {
       filename: z.string().optional(),
       theme: z.string().optional(),
       layout: z.string().optional(),
-    },
-    annotations: toolAnnotations({ idempotent: false }),
+    }).strict(),
+    // Rendering creates a new, expiring artifact and may evict older artifacts.
+    // Workspace/source files stay unchanged, but the server environment does not.
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
   }, async ({ source, profile, filename, theme, layout }) => {
     try {
       const prepared = preparePublication(source, {
@@ -165,8 +159,8 @@ export function registerPublicationMcp(server, { workspaceRoot } = {}) {
   server.registerTool('get_render_artifact', {
     title: 'Get rendered artifact metadata',
     description: 'Resolve a temporary EveGlyph publication artifact and return its resource URI and metadata.',
-    inputSchema: { artifact_id: z.string() },
-    annotations: toolAnnotations(),
+    inputSchema: z.object({ artifact_id: z.string().min(1) }).strict(),
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   }, async ({ artifact_id }) => {
     try {
       const artifact = publicationArtifactStore.get(artifact_id)
@@ -179,8 +173,8 @@ export function registerPublicationMcp(server, { workspaceRoot } = {}) {
   server.registerTool('get_render_report', {
     title: 'Get publication render evidence',
     description: 'Return source/artifact hashes, renderer/profile selection, diagnostics, warnings and artifact lifetime for a rendered document.',
-    inputSchema: { artifact_id: z.string() },
-    annotations: toolAnnotations(),
+    inputSchema: z.object({ artifact_id: z.string().min(1) }).strict(),
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   }, async ({ artifact_id }) => {
     try {
       const artifact = publicationArtifactStore.get(artifact_id)

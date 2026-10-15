@@ -48,6 +48,15 @@ test('MCP renders and retrieves an EveGlyph PDF artifact', async () => {
     assert.match(rendered.resource_uri, /^eveglyph-artifact:\/\//)
     assert.equal(rendered.mime_type, 'application/pdf')
 
+    const artifact = textJson(await client.callTool({
+      name: 'get_render_artifact',
+      arguments: { artifact_id: rendered.artifact_id },
+    }))
+    assert.equal(artifact.resource_uri, rendered.resource_uri)
+    assert.equal(artifact.artifact_sha256, rendered.artifact_sha256)
+    assert.equal(artifact.filename, '中文論文.pdf')
+    assert.equal(artifact.bytes, rendered.bytes)
+
     const resource = await client.readResource({ uri: rendered.resource_uri })
     const item = resource.contents[0]
     assert.equal(item.mimeType, 'application/pdf')

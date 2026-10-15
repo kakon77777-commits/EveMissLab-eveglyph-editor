@@ -6,6 +6,7 @@ import { TextDecoder } from 'node:util'
 import { fileURLToPath } from 'node:url'
 import iconv from 'iconv-lite'
 import jschardet from 'jschardet'
+import { createAgentInvocation, spawnAgentProcess } from './agent-process.js'
 
 // This file's own directory — NOT process.cwd(), which is wherever the dev
 // server happened to be launched from (can be anywhere, e.g. a parent
@@ -15,7 +16,7 @@ const BRIDGE_DIR = path.dirname(fileURLToPath(import.meta.url))
 
 // Bump when the agent-resolution logic changes — surfaced in /api/agents._debug
 // so we can tell at a glance whether a running server has the latest bridge.
-const BRIDGE_BUILD = 'claude-resolver-v2'
+const BRIDGE_BUILD = 'agent-argv-v3'
 
 // Per-agent invocation. The prompt is fed on stdin; `exe` is the base binary and
 // `flags(tier)` returns the fixed flags for a permission tier. The tier maps to REAL
@@ -431,11 +432,6 @@ async function commitIfChanged(cwd, message) {
   return (await runGit(cwd, ['rev-parse', 'HEAD'])).out.trim()
 }
 
-function withVersionArg(command) {
-  const trimmed = command.trim()
-  return `${trimmed} --version`
-}
-
 async function powershellCommandPath(name) {
   if (process.platform !== 'win32') return null
   const ps = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'
@@ -596,25 +592,22 @@ async function findLocalClaudeExe() {
 }
 
 async function resolveAgentCommand(agentId, command, permission = 'standard') {
-  if (command && command.trim()) {
+  if (command != null && typeof command !== 'string') throw new Error('Command override must be a string')
+  if (command?.trim()) {
     // The override "owns the whole command" — it runs completely unmodified, so it
     // bypasses every tier-based restriction the cautious/standard flag sets exist
     // for. Requiring Trusted here makes that bypass an explicit, deliberate choice
     // rather than something a Cautious/Standard-tier config can do silently.
-    if (permission !== 'trusted') {
-      throw new Error('Command override requires the Trusted permission tier (it replaces the whole command, bypassing all tier-based CLI restrictions) — switch to Trusted in Settings, or clear the override.')
-    }
-    return command.trim()
+    return createAgentInvocation({ override: command, permission })
   }
   const spec = AGENTS[agentId]
   if (!spec) return null
-  const flags = spec.flags(permission)
+  const args = spec.flags(permission).split(/\s+/)
   const resolved = process.env[AGENT_EXE_ENV[agentId]] || await which(spec.exe)
-  if (!resolved) return `${spec.exe} ${flags}`.trim()
-  return `${quoteCmd(resolved)} ${flags}`.trim()
+  return createAgentInvocation({ executable: resolved || spec.exe, args })
 }
 
-function probeCommand(command) {
+function probeCommand(executable) {
   return new Promise((resolve) => {
     let child
     let stderr = Buffer.alloc(0)
@@ -624,7 +617,7 @@ function probeCommand(command) {
     }, BRIDGE_CONFIG.probeTimeoutMs)
 
     try {
-      child = spawn(withVersionArg(command), { shell: true, cwd: process.cwd() })
+      child = spawnAgentProcess(createAgentInvocation({ executable, args: ['--version'] }), { cwd: process.cwd() })
     } catch (e) {
       clearTimeout(timer)
       resolve({ runnable: false, error: String(e?.message || e) })
@@ -729,7 +722,7 @@ async function getAgentsInfo(force = false) {
     const stdFlags = agent.flags(DISPLAY_TIER)
     const resolved = process.env[AGENT_EXE_ENV[id]] || await which(agent.exe)
     const resolvedCmd = resolved ? `${quoteCmd(resolved)} ${stdFlags}`.trim() : null
-    const probe = resolved ? await probeCommand(quoteCmd(resolved)) : { runnable: false, error: 'not found on PATH' }
+    const probe = resolved ? await probeCommand(resolved) : { runnable: false, error: 'not found on PATH' }
     agents[id] = {
       label: agent.label,
       cmd: `${agent.exe} ${stdFlags}`.trim(),
@@ -1064,13 +1057,12 @@ export function agentBridge() {
         }
 
         const runId = `${Date.now()}-${Math.random().toString(36).slice(2)}`
-        emitMonitor('agent:start', { agent, cwd: workdir, cmd: tmpl, permission: permission || 'standard', promptBytes: Buffer.byteLength(prompt, 'utf8') })
-        send({ type: 'meta', agent, cmd: tmpl, cwd: workdir, runId })
+        emitMonitor('agent:start', { agent, cwd: workdir, cmd: tmpl.displayCommand, permission: permission || 'standard', promptBytes: Buffer.byteLength(prompt, 'utf8') })
+        send({ type: 'meta', agent, cmd: tmpl.displayCommand, cwd: workdir, runId })
 
         let child
         try {
-          // shell:true is required on Windows to resolve .cmd shims.
-          child = spawn(tmpl, { shell: true, cwd: workdir })
+          child = spawnAgentProcess(tmpl, { cwd: workdir })
         } catch (e) {
           emitMonitor('agent:error', { agent, cwd: workdir, error: String(e?.message || e) })
           send({ type: 'error', data: String(e?.message || e) })
