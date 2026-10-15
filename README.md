@@ -1,6 +1,6 @@
 # EveGlyph Editor
 
-[![M8ven Score](https://m8ven.ai/badge/mcp/kakon77777-commits-evemisslab-eveglyph-editor-xhuvwh?v=72c64db07fcb807b8adf10bd28767c22)](https://m8ven.ai/mcp/kakon77777-commits-evemisslab-eveglyph-editor-xhuvwh?s=readme)
+[![M8ven Score](https://m8ven.ai/badge/mcp/kakon77777-commits-evemisslab-eveglyph-editor-xhuvwh?v=eda172acff4ade8457bcbf1932accd29)](https://m8ven.ai/mcp/kakon77777-commits-evemisslab-eveglyph-editor-xhuvwh?s=readme)
 
 > A local-first, AI-native Markdown editor and agentic document workspace — humans write clean Markdown, local CLI agents edit on disk, every change lands as a reviewable git diff. Part of **EveMissLab**.
 
