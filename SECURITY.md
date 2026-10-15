@@ -60,7 +60,7 @@ A separate trust model from the bridge above — read this before pointing an MC
 - **Workspace root is explicit and required.** The server refuses to start without a workspace-root argument (`node mcp-server.js <path>`) — there is no implicit "confine to cwd" fallback. Every file operation resolves the target path against that root and rejects anything that would escape it (mirrors the bridge's `resolveInside`), verified with an explicit `../../..` escape-attempt test during development.
 - **No diff-review layer of its own.** Unlike local-agent mode, `write_file` here does not snapshot/diff/require an Accept step — it writes immediately. This is intentional, not an oversight: an MCP host (Claude Desktop, Claude Code, etc.) already gates each tool call through its own human-approval UI before it runs, which fills the same "a human sees this before it happens" role the bridge's Accept/Reject view fills for an autonomous CLI agent. If the workspace is a git repo, your normal `git diff`/`git log` still works exactly as before — nothing about this server changes how git sees the files.
 - **`evaluate_aimdc` runs on untrusted expression text**, same as the in-app preview — it uses the same closed-grammar, no-`eval`/`Function` evaluator (`src/aimdc/evaluator.js`) and now enters through the `document-only` capability wrapper first. A malformed or adversarial AIMD-C block can only produce a parse/type error within the evaluator; it is not handed workspace/network/process/credential authority.
-- **Dependencies**: both lock files (`package-lock.json` and `desktop/package-lock.json`) are kept on patched versions. `npm audit` reported no known vulnerabilities for either of them on 2026-10-05, the date of the 0.5.0 preview, and Dependabot alerts are on for this repository. A vulnerable dependency that those checks have not caught yet is a security issue like any other; see *Reporting* at the end of this file.
+- **Dependencies**: the main source/runtime lock was updated on 2026-10-15 for the MCP SDK, KaTeX, and compatible transitive fixes; `npm audit` reports zero known vulnerabilities for that lock. Mammoth's CLI-only `argparse` dependency is overridden to the v2 compatibility API to remove vulnerable `sprintf-js`, with DOCX library/CLI conversion tested. The separate desktop packaging lock still has eight moderate audit entries through the same unpatched `sprintf-js` dependency in the Electron download/build toolchain; this is an open build-time finding, not covered by the main-lock result. Dependabot is enabled. Existing release downloads have not been rebuilt by these source changes. See *Reporting* below.
 
 ## The remote MCP server (`mcp-server-remote.js`)
 
@@ -84,6 +84,11 @@ Same tool set as `mcp-server.js` above, reachable over HTTP instead of stdio —
 - API keys are kept in the app profile's local storage (`%APPDATA%\EveGlyph Editor`), in plaintext, exactly as in the browser build.
 
 ## API keys
+
+Every settings write honors the provider-key and MCP-token remember choices,
+including quick theme, pane-size, workspace, and Runtime URL changes. Opted-out
+credentials remain usable in memory but are omitted from the saved copy. See
+[PRIVACY.md](PRIVACY.md) for the full data-flow and local-retention notice.
 
 - Cloud-provider API keys are stored in the browser's **`localStorage`, in plaintext** (key `eveglyph_cfg`). This is convenient for local dev but is **not** secure storage. Don't use it on a shared or untrusted machine. The Windows desktop app keeps them in its own profile's local storage (`%APPDATA%\EveGlyph Editor`), also in plaintext; moving keys to the OS keychain is not done yet.
 - Calling Anthropic directly from the browser requires the `anthropic-dangerous-direct-browser-access` header; for stricter setups, route through an OpenAI-compatible proxy instead.

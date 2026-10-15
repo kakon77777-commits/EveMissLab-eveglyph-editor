@@ -104,6 +104,8 @@ export function createMcpServer(workspaceRoot) {
   server.registerTool('list_files', {
     title: 'List workspace files',
     description: `List every text file (.md/.txt/.html/.json/.yaml/.yml) in the opened EveGlyph workspace (${WORKSPACE_ROOT}), as paths relative to the workspace root. node_modules/dist/build/.git and dotfiles are excluded.`,
+    inputSchema: z.object({}).strict(),
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   }, async () => {
     try { return jsonResult({ workspace: WORKSPACE_ROOT, files: await listFiles() }) }
     catch (e) { return errorResult(e) }
@@ -112,7 +114,8 @@ export function createMcpServer(workspaceRoot) {
   server.registerTool('read_file', {
     title: 'Read a workspace file',
     description: 'Read one file from the opened EveGlyph workspace by its path relative to the workspace root. Auto-detects encoding (handles legacy Big5/GBK files, not just UTF-8).',
-    inputSchema: { path: z.string().describe('File path relative to the workspace root, e.g. "notes/plan.md"') },
+    inputSchema: z.object({ path: z.string().min(1).describe('File path relative to the workspace root, e.g. "notes/plan.md"') }).strict(),
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   }, async ({ path: relPath }) => {
     try {
       const buf = await fs.readFile(resolveInside(relPath))
@@ -124,10 +127,11 @@ export function createMcpServer(workspaceRoot) {
   server.registerTool('write_file', {
     title: 'Write a workspace file',
     description: 'Create or overwrite one file in the opened EveGlyph workspace, UTF-8 encoded. Creates parent directories as needed. Does not run a git snapshot/diff on its own — if the workspace is a git repo, review the change with your own git tooling after writing.',
-    inputSchema: {
-      path: z.string().describe('File path relative to the workspace root'),
+    inputSchema: z.object({
+      path: z.string().min(1).describe('File path relative to the workspace root'),
       content: z.string().describe('Full new file content'),
-    },
+    }).strict(),
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
   }, async ({ path: relPath, content }) => {
     try {
       const abs = resolveInside(relPath)
@@ -140,7 +144,8 @@ export function createMcpServer(workspaceRoot) {
   server.registerTool('evaluate_aimdc', {
     title: 'Evaluate AIMD-C computable blocks',
     description: 'Parse and evaluate every AIMD-C block (aimd-value/function/compute/assert/table/view) through EveGlyph\'s document-only capability profile, returning computed results, the dependency-evaluation ledger, capability evidence, and any type/reference errors. Pass document content directly (use read_file first if it lives on disk).',
-    inputSchema: { content: z.string().describe('EveGlyph-MD document content, or just the relevant ::: aimd-* ::: blocks') },
+    inputSchema: z.object({ content: z.string().describe('EveGlyph-MD document content, or just the relevant ::: aimd-* ::: blocks') }).strict(),
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   }, async ({ content }) => {
     try {
       const blocks = extractAimdcBlocks(content)
@@ -160,7 +165,8 @@ export function createMcpServer(workspaceRoot) {
   server.registerTool('validate_world_ir', {
     title: 'Validate a World IR YAML document',
     description: 'Validate a CompilableWorld World IR YAML document (kind: state_machine / entity / entity_list) and return structured issues ({severity, code, message}) — the same validator the in-app World IR views use.',
-    inputSchema: { content: z.string().describe('Raw YAML content of a World IR document') },
+    inputSchema: z.object({ content: z.string().describe('Raw YAML content of a World IR document') }).strict(),
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   }, async ({ content }) => {
     try {
       const kind = /^\s*kind:\s*state_machine\b/m.test(content) ? 'state_machine'

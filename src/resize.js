@@ -5,7 +5,7 @@
 // #rh-rightpanel), persisted the same way theme/language/editorFontSize
 // already are (immediate localStorage write on drop, not gated behind the
 // Settings ⚙ Save button — a width you just dragged should stick).
-import { S, CFG_KEY } from './state.js'
+import { S, persistConfig } from './state.js'
 import { CONFIG } from './config.js'
 
 export function applyLayout() {
@@ -14,7 +14,7 @@ export function applyLayout() {
 }
 
 function persist() {
-  try { localStorage.setItem(CFG_KEY, JSON.stringify(S.cfg)) } catch (_) {}
+  try { persistConfig() } catch (_) {}
 }
 
 // sign: +1 if dragging right grows the pane (sidebar, on the left edge of

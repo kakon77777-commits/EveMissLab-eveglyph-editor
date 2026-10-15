@@ -55,5 +55,15 @@ export const S = {
 
 // Re-exported from the config contract so existing imports keep working unchanged.
 export const CFG_KEY      = CONFIG.storageKey
+
+// Every settings write, including quick UI changes, must honor credential
+// persistence choices without clearing the live session's working credentials.
+export function persistConfig(storage = globalThis.localStorage, config = S.cfg) {
+  const saved = { ...config }
+  if (config.keyPersist === false) saved.key = ''
+  if (!config.mcpTokenPersist) saved.mcpToken = ''
+  storage.setItem(CFG_KEY, JSON.stringify(saved))
+}
+
 export const EVEGLYPH_DIR   = CONFIG.eveglyphDir
 export const EVEGLYPH_FILES = CONFIG.eveglyphFiles

@@ -3,6 +3,27 @@
 All notable changes to EveGlyph Editor are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/) — newest first.
 
+## [Unreleased]
+
+### Fixed
+- Declare strict input schemas and complete safety hints for all eleven MCP tools;
+  identify workspace overwrites and temporary render-artifact eviction accurately.
+- Run built-in local-agent commands and version probes with separate executable
+  and argument values, including escaped Windows command shims. Shell syntax is
+  retained only for explicit Trusted-tier command overrides; prompts use stdin.
+- Honor credential remember choices on every settings write, including quick
+  theme, pane, workspace and Runtime URL changes, and scrub opted-out credentials
+  previously saved by older versions.
+- Update the MCP SDK, KaTeX and compatible transitive dependencies. Use Mammoth's
+  compatible argparse v2 API to remove its vulnerable CLI formatting dependency.
+
+### Added
+- Protocol tests for all MCP tools, malformed inputs, workspace boundaries, and
+  PDF artifact retrieval; native/Windows-shim process tests and credential
+  persistence regression coverage.
+- [Privacy notice](PRIVACY.md) describing local storage, diagnostics, MCP-client
+  access and optional network features, also included in desktop staging.
+
 ## [0.5.0] — 2026-10-05
 
 ### Added

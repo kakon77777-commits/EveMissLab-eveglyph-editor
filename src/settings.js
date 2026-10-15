@@ -1,4 +1,4 @@
-import { S, CFG_KEY }   from './state.js'
+import { S, CFG_KEY, persistConfig }   from './state.js'
 import { CONFIG }       from './config.js'
 import { monitor }      from './monitor.js'
 import { statusUpdate } from './status.js'
@@ -141,16 +141,18 @@ export async function populateModels(explicit = false) {
 
 export function cfgLoad() {
   try {
-    // One-time migration from the legacy Noesis key → eveglyph_cfg (lossless).
+    // Migrate legacy settings while honoring their credential retention choices.
     if (localStorage.getItem(CFG_KEY) === null) {
       const legacy = localStorage.getItem('noesis_cfg')
       if (legacy !== null) {
-        localStorage.setItem(CFG_KEY, legacy)
+        persistConfig(localStorage, JSON.parse(legacy))
         localStorage.removeItem('noesis_cfg')
       }
     }
     const saved = localStorage.getItem(CFG_KEY)
     if (saved) Object.assign(S.cfg, JSON.parse(saved))
+    // Scrub credentials saved by older quick-setting paths when retention is off.
+    persistConfig()
   } catch (_) {}
 
   $('s-provider').value = S.cfg.provider
@@ -313,10 +315,7 @@ export function cfgSave(showMessage = true) {
   // S.cfg.key/mcpToken keep their real values in memory for this session either
   // way (so the provider/MCP toggle both work immediately); only the persisted
   // copy drops them when the user opted out of "Remember on this device."
-  const toPersist = { ...S.cfg }
-  if (S.cfg.keyPersist === false) toPersist.key = ''
-  if (!S.cfg.mcpTokenPersist) toPersist.mcpToken = ''
-  localStorage.setItem(CFG_KEY, JSON.stringify(toPersist))
+  persistConfig()
   loadCustomCss()   // path may have just changed — reload (or clear) so Save is visibly immediate
   if (showMessage) {
     setMsg('Saved', 'ok')
@@ -336,7 +335,7 @@ export async function useBridgeCwd() {
 
   $('s-workspace').value = info.cwd
   S.cfg.workspace = info.cwd
-  localStorage.setItem(CFG_KEY, JSON.stringify(S.cfg))
+  persistConfig()
   setMsg(`Workspace set to ${info.cwd}`, 'ok')
   await loadWorkspacePath(info.cwd)
 }
